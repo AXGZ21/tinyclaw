@@ -2,7 +2,7 @@
 # TinyClaw - Main daemon using tmux + claude -c -p + messaging channels
 #
 # To add a new channel:
-#   1. Create src/<channel>-client.ts
+#   1. Create src/channels/<channel>-client.ts
 #   2. Add the channel ID to ALL_CHANNELS in lib/common.sh
 #   3. Fill in the CHANNEL_* registry arrays in lib/common.sh
 #   4. Run setup wizard to enable it
@@ -16,7 +16,11 @@ fi
 TMUX_SESSION="tinyclaw"
 # Centralize all logs to ~/.tinyclaw/logs
 LOG_DIR="$HOME/.tinyclaw/logs"
-SETTINGS_FILE="$HOME/.tinyclaw/settings.json"
+if [ -f "$SCRIPT_DIR/.tinyclaw/settings.json" ]; then
+    SETTINGS_FILE="$SCRIPT_DIR/.tinyclaw/settings.json"
+else
+    SETTINGS_FILE="$HOME/.tinyclaw/settings.json"
+fi
 
 mkdir -p "$LOG_DIR"
 
@@ -301,20 +305,40 @@ case "${1:-}" in
                 fi
                 team_show "$3"
                 ;;
+            visualize|viz)
+                # Build visualizer if needed
+                if [ ! -f "$SCRIPT_DIR/dist/visualizer/team-visualizer.js" ] || \
+                   [ "$SCRIPT_DIR/src/visualizer/team-visualizer.tsx" -nt "$SCRIPT_DIR/dist/visualizer/team-visualizer.js" ]; then
+                    echo -e "${BLUE}Building team visualizer...${NC}"
+                    cd "$SCRIPT_DIR" && npm run build:visualizer 2>/dev/null
+                    if [ $? -ne 0 ]; then
+                        echo -e "${RED}Failed to build visualizer.${NC}"
+                        exit 1
+                    fi
+                fi
+                if [ -n "$3" ]; then
+                    node "$SCRIPT_DIR/dist/visualizer/team-visualizer.js" --team "$3"
+                else
+                    node "$SCRIPT_DIR/dist/visualizer/team-visualizer.js"
+                fi
+                ;;
             *)
-                echo "Usage: $0 team {list|add|remove|show}"
+                echo "Usage: $0 team {list|add|remove|show|visualize}"
                 echo ""
                 echo "Team Commands:"
                 echo "  list                   List all configured teams"
                 echo "  add                    Add a new team interactively"
                 echo "  remove <id>            Remove a team"
                 echo "  show <id>              Show team configuration"
+                echo "  visualize [team_id]    Live TUI dashboard for team collaboration"
                 echo ""
                 echo "Examples:"
                 echo "  $0 team list"
                 echo "  $0 team add"
                 echo "  $0 team show dev"
                 echo "  $0 team remove dev"
+                echo "  $0 team visualize"
+                echo "  $0 team visualize dev"
                 echo ""
                 echo "In chat, use '@team_id message' to route to a team's leader agent."
                 echo "Agents can collaborate by mentioning @teammate in responses."
@@ -350,7 +374,7 @@ case "${1:-}" in
         echo "  provider [name] [--model model]  Show or switch AI provider"
         echo "  model [name]             Show or switch AI model"
         echo "  agent {list|add|remove|show|reset}  Manage agents"
-        echo "  team {list|add|remove|show}        Manage teams"
+        echo "  team {list|add|remove|show|visualize}  Manage teams"
         echo "  update                   Update TinyClaw to latest version"
         echo "  attach                   Attach to tmux session"
         echo ""
@@ -362,6 +386,7 @@ case "${1:-}" in
         echo "  $0 agent list"
         echo "  $0 agent add"
         echo "  $0 team list"
+        echo "  $0 team visualize dev"
         echo "  $0 send '@coder fix the bug'"
         echo "  $0 send '@dev fix the auth bug'"
         echo "  $0 channels reset whatsapp"

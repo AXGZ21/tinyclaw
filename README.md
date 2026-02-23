@@ -26,6 +26,7 @@
 - ✅ **Multi-agent** - Run multiple isolated AI agents with specialized roles
 - ✅ **Multi-team collaboration** - Agents hand off work to teammates via chain execution and fan-out
 - ✅ **Multi-channel** - Discord, WhatsApp, and Telegram
+- ✅ **Web portal (TinyOffice)** - Browser-based dashboard for chat, agents, teams, tasks, logs, and settings
 - ✅ **Team Observation** - You can observe agent teams conversations via `tinyclaw team visualize`
 - ✅ **Multiple AI providers** - Anthropic Claude and OpenAI Codex using existing subscriptions without breaking ToS
 - ✅ **Parallel processing** - Agents process messages concurrently
@@ -34,7 +35,7 @@
 - ✅ **SQLite queue** - Atomic transactions, retry logic, dead-letter management
 - ✅ **24/7 operation** - Runs in tmux for always-on availability
 
-## Community 
+## Community
 
 [Discord](https://discord.com/invite/jH6AcEChuD)
 
@@ -122,6 +123,45 @@ After starting TinyClaw, scan the QR code:
 ```
 
 </details>
+
+---
+
+## 🌐 TinyOffice Web Portal
+
+TinyClaw includes `tinyoffice/`, a Next.js web portal for operating TinyClaw from the browser.
+
+<div align="center">
+  <img src="./docs/images/tinyoffice.png" alt="TinyOffice Office View" width="700" />
+</div>
+
+### TinyOffice Features
+
+- **Dashboard** - Real-time queue/system overview and live event feed
+- **Chat Console** - Send messages to default agent, `@agent`, or `@team`
+- **Agents & Teams** - Create, edit, and remove agents/teams
+- **Tasks (Kanban)** - Create tasks, drag across stages, assign to agent/team
+- **Logs & Events** - Inspect queue logs and streaming events
+- **Settings** - Edit TinyClaw configuration (`settings.json`) via UI
+- **Office View** - Visual simulation of agent interactions
+
+### Run TinyOffice
+
+Start TinyClaw first (API default: `http://localhost:3777`), then:
+
+```bash
+cd tinyoffice
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`.
+
+If TinyClaw API is on a different host/port, set:
+
+```bash
+cd tinyoffice
+echo 'NEXT_PUBLIC_API_URL=http://localhost:3777' > .env.local
+```
 
 ## 📋 Commands
 
@@ -400,6 +440,7 @@ tinyclaw/
 ├── dist/                 # Compiled output
 ├── lib/                  # Runtime scripts
 ├── scripts/              # Installation scripts
+├── tinyoffice/           # TinyOffice web portal (Next.js)
 └── tinyclaw.sh           # Main script
 ```
 
@@ -508,6 +549,7 @@ All channels share agent conversations!
 - [AGENTS.md](docs/AGENTS.md) - Agent management and routing
 - [TEAMS.md](docs/TEAMS.md) - Team collaboration, chain execution, and visualizer
 - [QUEUE.md](docs/QUEUE.md) - Queue system and message flow
+- [tinyoffice/README.md](tinyoffice/README.md) - TinyOffice web portal
 - [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) - Common issues and solutions
 
 ## 🐛 Troubleshooting

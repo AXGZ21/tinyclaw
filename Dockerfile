@@ -17,7 +17,7 @@ RUN npm ci
 
 # Copy tinyoffice package files and install its dependencies
 COPY tinyoffice/package*.json ./tinyoffice/
-RUN cd tinyoffice && npm ci
+RUN cd tinyoffice && npm install
 
 # Copy all source
 COPY . .

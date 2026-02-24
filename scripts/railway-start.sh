@@ -3,11 +3,12 @@
 # TinyClaw Railway Startup Script
 # Supports: Anthropic Claude, OpenAI Codex, OpenCode, Discord, Telegram, WhatsApp, TinyOffice
 
-set -e
+# NOTE: intentionally no "set -e" — individual services may fail without tokens,
+# but TinyOffice must always start so the user can configure everything from the UI.
 
-echo "==========================================="
+echo "============================================="
 echo "Starting TinyClaw on Railway..."
-echo "==========================================="
+echo "============================================="
 
 # Load environment variables from Railway
 if [ -f "/env.sh" ]; then
@@ -35,16 +36,6 @@ echo "  Channels: $CHANNELS"
 echo "  TinyOffice: $TINYOFFICE_ENABLED"
 echo ""
 
-# Check for API keys based on provider
-if [ "$AI_PROVIDER" = "anthropic" ] && [ -z "$ANTHROPIC_API_KEY" ]; then
-    echo "ERROR: ANTHROPIC_API_KEY is required when AI_PROVIDER=anthropic"
-    # Don't exit - continue and let it be configured via TinyOffice
-fi
-
-if [ "$AI_PROVIDER" = "openai" ] && [ -z "$OPENAI_API_KEY" ]; then
-    echo "WARNING: OPENAI_API_KEY not set, will be configured via TinyOffice"
-fi
-
 # Create settings.json from environment
 echo "Creating configuration..."
 cat > /.tinyclaw/settings.json << EOF
@@ -68,7 +59,7 @@ cat > /.tinyclaw/settings.json << EOF
       "model": "${AI_MODEL:-claude-sonnet-4-20250514}"
     },
     "openai": {
-      "model": "${AI_MODEL:-gpt-5.3-codex}"
+      "model": "${AI_MODEL:-gpt-4o}"
     },
     "opencode": {
       "model": "${AI_MODEL:-default}"
@@ -83,63 +74,39 @@ EOF
 echo "Settings created."
 echo ""
 
-# Function to start a service
+# Start message queue processor (best-effort — won't block TinyOffice if it fails)
+echo "Starting queue processor..."
+npm run queue > /.tinyclaw/logs/queue.log 2>&1 &
+QUEUE_PID=$!
+sleep 2
+if kill -0 $QUEUE_PID 2>/dev/null; then
+    echo "  Queue processor running (PID: $QUEUE_PID)"
+else
+    echo "  WARNING: Queue processor exited early — check /.tinyclaw/logs/queue.log"
+fi
+echo ""
+
+# Start channel services (best-effort — missing tokens just log a warning)
 start_service() {
     local service=$1
-    local required_env=$2
-
     if [[ "$CHANNELS" == *"$service"* ]]; then
         echo "Starting $service..."
-        # Always try to start - it will handle missing tokens internally
         npm run $service > /.tinyclaw/logs/$service.log 2>&1 &
         echo "  $service started (PID: $!)"
     fi
 }
 
-# Start message queue processor (always runs)
-echo "Starting queue processor..."
-npm run queue > /.tinyclaw/logs/queue.log 2>&1 &
-echo "  Queue processor started (PID: $!)"
-echo ""
-
-# Start enabled channel services
 echo "Starting channel services..."
-start_service "discord" "DISCORD_TOKEN"
-start_service "telegram" "TELEGRAM_TOKEN"
-start_service "whatsapp" "WHATSAPP_SESSION"
-
+start_service "discord"
+start_service "telegram"
+start_service "whatsapp"
 echo ""
 
-# Start TinyOffice if enabled
+# Start TinyOffice — this is the foreground process that keeps the container alive
 if [ "$TINYOFFICE_ENABLED" = "true" ]; then
-    echo "Starting TinyOffice web portal..."
-
-    # Build TinyOffice
-    cd tinyoffice
-    npm install --silent 2>/dev/null || true
-    npm run build 2>/dev/null || true
-
-    # Start TinyOffice in background
-    cd ..
-
-    # TinyOffice runs on port 3000 by default
-    (cd tinyoffice && PORT=$TINYOFFICE_PORT npm run start > /.tinyclaw/logs/tinyoffice.log 2>&1) &
-    echo "  TinyOffice started on port $TINYOFFICE_PORT (PID: $!)"
+    echo "Starting TinyOffice web interface on port $TINYOFFICE_PORT..."
+    PORT=$TINYOFFICE_PORT npm run visualize
+else
+    echo "TinyOffice disabled — tailing queue log to keep container alive..."
+    tail -f /.tinyclaw/logs/queue.log
 fi
-
-echo ""
-echo "==========================================="
-echo "TinyClaw is running!"
-echo "==========================================="
-echo ""
-echo "Service Endpoints:"
-echo "  - AI Provider: $AI_PROVIDER"
-if [ "$TINYOFFICE_ENABLED" = "true" ]; then
-    echo "  - TinyOffice: http://localhost:$TINYOFFICE_PORT"
-fi
-echo ""
-echo "Configure everything via TinyOffice web portal!"
-echo "View logs: railway logs"
-
-# Keep the process running
-wait

@@ -12,8 +12,6 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
-// ── Types ─────────────────────────────────────────────────────────────────
-
 export interface AgentConfig {
   name: string;
   provider: string;
@@ -39,13 +37,18 @@ export interface Settings {
   };
   models?: {
     provider?: string;
-    anthropic?: { model?: string };
-    openai?: { model?: string };
+    anthropic?: { model?: string; apiKey?: string; auth_method?: string };
+    openai?: { model?: string; apiKey?: string; auth_method?: string };
     opencode?: { model?: string };
   };
   agents?: Record<string, AgentConfig>;
   teams?: Record<string, TeamConfig>;
   monitoring?: { heartbeat_interval?: number };
+}
+
+export interface AuthStatus {
+  connected: boolean;
+  method: "oauth" | "api_key" | null;
 }
 
 export interface QueueStatus {
@@ -72,8 +75,6 @@ export interface EventData {
   [key: string]: unknown;
 }
 
-// ── API Functions ─────────────────────────────────────────────────────────
-
 export async function getAgents(): Promise<Record<string, AgentConfig>> {
   return apiFetch("/api/agents");
 }
@@ -90,6 +91,18 @@ export async function updateSettings(settings: Partial<Settings>): Promise<{ ok:
   return apiFetch("/api/settings", { method: "PUT", body: JSON.stringify(settings) });
 }
 
+export async function getAuthStatus(provider: "claude" | "codex"): Promise<AuthStatus> {
+  return apiFetch(`/api/auth/${provider}/status`);
+}
+
+export async function startOAuth(provider: "claude" | "codex"): Promise<{ url: string }> {
+  return apiFetch(`/api/auth/${provider}/start`);
+}
+
+export async function disconnectOAuth(provider: "claude" | "codex"): Promise<{ ok: boolean }> {
+  return apiFetch(`/api/auth/${provider}/disconnect`, { method: "DELETE" });
+}
+
 export async function getQueueStatus(): Promise<QueueStatus> {
   return apiFetch("/api/queue/status");
 }
@@ -102,101 +115,30 @@ export async function getLogs(limit = 100): Promise<{ lines: string[] }> {
   return apiFetch(`/api/logs?limit=${limit}`);
 }
 
-export async function saveAgent(
-  id: string,
-  agent: AgentConfig
-): Promise<{ ok: boolean; agent: AgentConfig }> {
-  return apiFetch(`/api/agents/${encodeURIComponent(id)}`, {
-    method: "PUT",
-    body: JSON.stringify(agent),
-  });
-}
-
-export async function deleteAgent(id: string): Promise<{ ok: boolean }> {
-  return apiFetch(`/api/agents/${encodeURIComponent(id)}`, { method: "DELETE" });
-}
-
-export async function saveTeam(
-  id: string,
-  team: TeamConfig
-): Promise<{ ok: boolean; team: TeamConfig }> {
-  return apiFetch(`/api/teams/${encodeURIComponent(id)}`, {
-    method: "PUT",
-    body: JSON.stringify(team),
-  });
-}
-
-export async function deleteTeam(id: string): Promise<{ ok: boolean }> {
-  return apiFetch(`/api/teams/${encodeURIComponent(id)}`, { method: "DELETE" });
-}
-
-export async function sendMessage(payload: {
+export async function sendMessage(data: {
+  channel: string;
   message: string;
-  agent?: string;
-  sender?: string;
-  channel?: string;
+  target?: string;
 }): Promise<{ ok: boolean; messageId: string }> {
-  return apiFetch("/api/message", { method: "POST", body: JSON.stringify(payload) });
+  return apiFetch("/api/send", { method: "POST", body: JSON.stringify(data) });
 }
-
-// ── Tasks ─────────────────────────────────────────────────────────────────
-
-export type TaskStatus = "backlog" | "in_progress" | "review" | "done";
-
-export interface Task {
-  id: string;
-  title: string;
-  description: string;
-  status: TaskStatus;
-  assignee: string;
-  assigneeType: "agent" | "team" | "";
-  createdAt: number;
-  updatedAt: number;
-}
-
-export async function getTasks(): Promise<Task[]> {
-  return apiFetch("/api/tasks");
-}
-
-export async function createTask(task: Partial<Task>): Promise<{ ok: boolean; task: Task }> {
-  return apiFetch("/api/tasks", { method: "POST", body: JSON.stringify(task) });
-}
-
-export async function updateTask(id: string, task: Partial<Task>): Promise<{ ok: boolean; task: Task }> {
-  return apiFetch(`/api/tasks/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(task) });
-}
-
-export async function deleteTask(id: string): Promise<{ ok: boolean }> {
-  return apiFetch(`/api/tasks/${encodeURIComponent(id)}`, { method: "DELETE" });
-}
-
-export async function reorderTasks(columns: Record<string, string[]>): Promise<{ ok: boolean }> {
-  return apiFetch("/api/tasks/reorder", { method: "PUT", body: JSON.stringify({ columns }) });
-}
-
-// ── SSE ───────────────────────────────────────────────────────────────────
 
 export function subscribeToEvents(
   onEvent: (event: EventData) => void,
-  onError?: (err: Event) => void
+  onDisconnect?: () => void
 ): () => void {
-  const es = new EventSource(`${API_BASE}/api/events/stream`);
-
-  const handler = (e: MessageEvent) => {
-    try { onEvent(JSON.parse(e.data)); } catch { /* ignore parse errors */ }
+  const es = new EventSource(`${API_BASE}/api/events`);
+  es.onmessage = (e) => {
+    try {
+      const event = JSON.parse(e.data);
+      onEvent(event);
+    } catch (err) {
+      console.error("SSE parse error:", err);
+    }
   };
-
-  // Listen to all known event types
-  const eventTypes = [
-    "message_received", "agent_routed", "chain_step_start", "chain_step_done",
-    "chain_handoff", "team_chain_start", "team_chain_end", "response_ready",
-    "processor_start", "message_enqueued",
-  ];
-  for (const type of eventTypes) {
-    es.addEventListener(type, handler);
-  }
-
-  if (onError) es.onerror = onError;
-
+  es.onerror = () => {
+    onDisconnect?.();
+    es.close();
+  };
   return () => es.close();
 }

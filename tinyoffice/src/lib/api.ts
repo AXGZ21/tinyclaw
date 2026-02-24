@@ -12,6 +12,8 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
+// ── Types ────────────────────────────────────────────────────────────────────
+
 export interface AgentConfig {
   name: string;
   provider: string;
@@ -75,6 +77,20 @@ export interface EventData {
   [key: string]: unknown;
 }
 
+// ── API Functions ────────────────────────────────────────────────────────────
+
+export async function getAuthStatus(provider: "claude" | "openai"): Promise<AuthStatus> {
+  return apiFetch(`/api/auth/${provider}/status`);
+}
+
+export async function startOAuth(provider: "claude" | "openai"): Promise<{ url: string }> {
+  return apiFetch(`/api/auth/${provider}/start`);
+}
+
+export async function disconnectOAuth(provider: "claude" | "openai"): Promise<{ ok: boolean }> {
+  return apiFetch(`/api/auth/${provider}/disconnect`, { method: "DELETE" });
+}
+
 export async function getAgents(): Promise<Record<string, AgentConfig>> {
   return apiFetch("/api/agents");
 }
@@ -89,18 +105,6 @@ export async function getSettings(): Promise<Settings> {
 
 export async function updateSettings(settings: Partial<Settings>): Promise<{ ok: boolean; settings: Settings }> {
   return apiFetch("/api/settings", { method: "PUT", body: JSON.stringify(settings) });
-}
-
-export async function getAuthStatus(provider: "claude" | "codex"): Promise<AuthStatus> {
-  return apiFetch(`/api/auth/${provider}/status`);
-}
-
-export async function startOAuth(provider: "claude" | "codex"): Promise<{ url: string }> {
-  return apiFetch(`/api/auth/${provider}/start`);
-}
-
-export async function disconnectOAuth(provider: "claude" | "codex"): Promise<{ ok: boolean }> {
-  return apiFetch(`/api/auth/${provider}/disconnect`, { method: "DELETE" });
 }
 
 export async function getQueueStatus(): Promise<QueueStatus> {

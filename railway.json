@@ -1,0 +1,21 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildpacks": ["node"]
+  },
+  "deploy": {
+    "numReplicas": 1,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  },
+  "name": "tinyclaw",
+  "description": "Multi-agent, multi-team, multi-channel AI assistant framework",
+  "repository": "https://github.com/TinyAGI/tinyclaw",
+  "artifacts": [
+    {
+      "path": "./.tinyclaw",
+      "glob": "**/*"
+    }
+  ]
+}

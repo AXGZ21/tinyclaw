@@ -68,68 +68,23 @@ export function getDefaultAgentFromModels(settings: Settings): AgentConfig {
     const provider = settings?.models?.provider || 'anthropic';
     let model = '';
     if (provider === 'openai') {
-        model = settings?.models?.openai?.model || 'gpt-4o-2024-11-20';
+        model = settings?.models?.openai?.model || 'gpt-5.2';
     } else if (provider === 'opencode') {
-        model = settings?.models?.opencode?.model || 'meta-llama/Llama-3.3-70B-Instruct';
+        model = settings?.models?.opencode?.model || 'gpt-5.3-codex';
     } else {
-        model = settings?.models?.anthropic?.model || 'claude-opus-4-20250514';
+        model = settings?.models?.anthropic?.model || 'sonnet';
     }
+
+    const workingDirectory = settings?.workspace?.path || process.cwd();
+    const systemPrompt = '';
 
     return {
         name: 'default',
         provider,
         model,
-        apiKey: '', // will be set from provider keys
-        apiBase: settings?.models?.[provider]?.api_base || '',
-        temperature: settings?.models?.temperature,
-        maxTokens: settings?.models?.maxTokens || 8192,
+        working_directory: workingDirectory,
+        system_prompt: systemPrompt,
     };
-}
-
-/**
- * @deprecated Use getDefaultAgentFromModels instead
- */
-export function getModel() {
-    const settings = getSettings();
-    return getDefaultAgentFromModels(settings).model || 'claude-opus-4-20250514';
-}
-
-export function getAnthropicKey(): string | undefined {
-    return getSettings()?.models?.anthropic?.api_key;
-}
-
-export function getOpenAIKey(): string | undefined {
-    return getSettings()?.models?.openai?.api_key;
-}
-
-export function getOpenCodeKey(): string | undefined {
-    return getSettings()?.models?.opencode?.api_key;
-}
-
-export function getApiKeyForProvider(provider: string): string | undefined {
-    if (provider === 'openai') return getOpenAIKey();
-    if (provider === 'opencode') return getOpenCodeKey();
-    if (provider === 'anthropic') return getAnthropicKey();
-}
-
-/**
- * Return the currently configured agents, or a default agent if none exist.
- */
-export function getAgents(settings?: Settings): AgentConfig[] {
-    if (!settings) settings = getSettings();
-    if (settings?.agents && settings.agents.length > 0) {
-        return settings.agents;
-    }
-    // Fallback to legacy single-model config
-    return [getDefaultAgentFromModels(settings)];
-}
-
-/**
- * Return the currently configured teams, or an empty array.
- */
-export function getTeams(settings?: Settings): TeamConfig[] {
-    if (!settings) settings = getSettings();
-    return settings?.teams || [];
 }
 
 /**

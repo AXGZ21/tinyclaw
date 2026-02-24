@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { jsonrepair } from 'jsonrepair';
-import { Settings, AgentConfig, TeamConfig, CLAUDE_MODEL_IDS, CODEX_MODEL_IDS, OPENCODE_MODEL_IDS } from './types';
+import { Settings, AgentConfig, CLAUDE_MODEL_IDS, CODEX_MODEL_IDS, OPENCODE_MODEL_IDS } from './types';
 
 export const SCRIPT_DIR = path.resolve(__dirname, '../..');
 const _localTinyclaw = path.join(SCRIPT_DIR, '.tinyclaw');
@@ -22,14 +22,10 @@ export function getSettings(): Settings {
         try {
             settings = JSON.parse(settingsData);
         } catch (parseError) {
-            // JSON is invalid — attempt auto-fix with jsonrepair
             console.error(`[WARN] settings.json contains invalid JSON: ${(parseError as Error).message}`);
-
             try {
                 const repaired = jsonrepair(settingsData);
                 settings = JSON.parse(repaired);
-
-                // Write the fixed JSON back and create a backup
                 const backupPath = SETTINGS_FILE + '.bak';
                 fs.copyFileSync(SETTINGS_FILE, backupPath);
                 fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2) + '\n');
@@ -40,7 +36,6 @@ export function getSettings(): Settings {
             }
         }
 
-        // Auto-detect provider if not specified
         if (!settings?.models?.provider) {
             if (settings?.models?.openai) {
                 if (!settings.models) settings.models = {};
@@ -60,10 +55,6 @@ export function getSettings(): Settings {
     }
 }
 
-/**
- * Build the default agent config from the legacy models section.
- * Used when no agents are configured, for backwards compatibility.
- */
 export function getDefaultAgentFromModels(settings: Settings): AgentConfig {
     const provider = settings?.models?.provider || 'anthropic';
     let model = '';
@@ -74,23 +65,16 @@ export function getDefaultAgentFromModels(settings: Settings): AgentConfig {
     } else {
         model = settings?.models?.anthropic?.model || 'sonnet';
     }
-
-    const workingDirectory = settings?.workspace?.path || process.cwd();
-    const systemPrompt = '';
-
     return {
         name: 'default',
         provider,
         model,
-        working_directory: workingDirectory,
-        system_prompt: systemPrompt,
+        working_directory: settings?.workspace?.path || process.cwd(),
+        system_prompt: '',
     };
 }
 
-/**
- * Mutate the in-memory settings object and write it back to disk.
- */
-export function mutateSettings(fn: (s: Settings) => void): void {
+export function mutateSettings(fn: (settings: Settings) => void): void {
     const settings = getSettings();
     fn(settings);
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2) + '\n');

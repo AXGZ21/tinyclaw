@@ -83,7 +83,7 @@ export function startApiServer(
         fetch: app.fetch,
         port: API_PORT,
     }, () => {
-        log('INFO', `API server listening on http://localhost:${API_PORT}`);
+        log('INFO', `API server listening on port ${API_PORT}`);
     });
 
     return server as unknown as http.Server;

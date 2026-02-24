@@ -11,17 +11,22 @@ RUN apk add --no-cache \
     jq \
     curl
 
-# Copy package files
+# Copy package files and install root dependencies
 COPY package*.json ./
-
-# Install dependencies
 RUN npm ci
 
-# Copy source
+# Copy tinyoffice package files and install its dependencies
+COPY tinyoffice/package*.json ./tinyoffice/
+RUN cd tinyoffice && npm ci
+
+# Copy all source
 COPY . .
 
-# Build TypeScript
+# Build TypeScript (main app)
 RUN npm run build
+
+# Build TinyOffice Next.js app at build time (not runtime)
+RUN cd tinyoffice && npm run build
 
 # Create data directory
 RUN mkdir -p /.tinyclaw
@@ -29,7 +34,7 @@ RUN mkdir -p /.tinyclaw
 # Set environment
 ENV NODE_ENV=production
 
-# Expose ports for TinyOffice
+# Expose ports: 3000 = TinyOffice, 3777 = API server
 EXPOSE 3000 3777
 
 # Run the startup script

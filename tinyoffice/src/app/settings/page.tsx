@@ -30,7 +30,7 @@ function OAuthCard({
   description,
   icon,
 }: {
-  provider: "claude" | "codex";
+  provider: "claude" | "openai";
   label: string;
   description: string;
   icon: React.ReactNode;
@@ -292,8 +292,8 @@ export default function SettingsPage() {
                 icon={<span className="text-lg">🤖</span>}
               />
               <OAuthCard
-                provider="codex"
-                label="Codex (OpenAI)"
+                provider="openai"
+                label="OpenAI"
                 description="OpenAI's Codex CLI via OAuth login or API key. OAuth uses your ChatGPT Plus / OpenAI account."
                 icon={<span className="text-lg">⚡</span>}
               />

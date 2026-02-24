@@ -23,6 +23,7 @@ import { createQueueRoutes } from './routes/queue';
 import tasksRoutes from './routes/tasks';
 import logsRoutes from './routes/logs';
 import chatsRoutes from './routes/chats';
+import authRoutes from './routes/auth';
 
 const API_PORT = parseInt(process.env.TINYCLAW_API_PORT || '3777', 10);
 
@@ -30,7 +31,7 @@ const API_PORT = parseInt(process.env.TINYCLAW_API_PORT || '3777', 10);
  * Create and start the API server.
  *
  * @param conversations  Live reference to the queue-processor conversation map
- *                       so the /api/queue/status endpoint can report active count.
+ *                        so the /api/queue/status endpoint can report active count.
  * @returns The http.Server instance (for graceful shutdown).
  */
 export function startApiServer(
@@ -50,6 +51,7 @@ export function startApiServer(
     app.route('/', tasksRoutes);
     app.route('/', logsRoutes);
     app.route('/', chatsRoutes);
+    app.route('/', authRoutes);
 
     // SSE endpoint — needs raw Node.js response for streaming
     app.get('/api/events/stream', (c) => {

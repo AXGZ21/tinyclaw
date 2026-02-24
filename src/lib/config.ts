@@ -68,62 +68,75 @@ export function getDefaultAgentFromModels(settings: Settings): AgentConfig {
     const provider = settings?.models?.provider || 'anthropic';
     let model = '';
     if (provider === 'openai') {
-        model = settings?.models?.openai?.model || 'gpt-5.3-codex';
+        model = settings?.models?.openai?.model || 'gpt-4o-2024-11-20';
     } else if (provider === 'opencode') {
-        model = settings?.models?.opencode?.model || 'sonnet';
+        model = settings?.models?.opencode?.model || 'meta-llama/Llama-3.3-70B-Instruct';
     } else {
-        model = settings?.models?.anthropic?.model || 'sonnet';
+        model = settings?.models?.anthropic?.model || 'claude-opus-4-20250514';
     }
 
-    // Get workspace path from settings or use default
-    const workspacePath = settings?.workspace?.path || path.join(require('os').homedir(), 'tinyclaw-workspace');
-    const defaultAgentDir = path.join(workspacePath, 'default');
-
     return {
-        name: 'Default',
+        name: 'default',
         provider,
         model,
-        working_directory: defaultAgentDir,
+        apiKey: '', // will be set from provider keys
+        apiBase: settings?.models?.[provider]?.api_base || '',
+        temperature: settings?.models?.temperature,
+        maxTokens: settings?.models?.maxTokens || 8192,
     };
 }
 
 /**
- * Get all configured agents. Falls back to a single "default" agent
- * derived from the legacy models section if no agents are configured.
+ * @deprecated Use getDefaultAgentFromModels instead
  */
-export function getAgents(settings: Settings): Record<string, AgentConfig> {
-    if (settings.agents && Object.keys(settings.agents).length > 0) {
+export function getModel() {
+    const settings = getSettings();
+    return getDefaultAgentFromModels(settings).model || 'claude-opus-4-20250514';
+}
+
+export function getAnthropicKey(): string | undefined {
+    return getSettings()?.models?.anthropic?.api_key;
+}
+
+export function getOpenAIKey(): string | undefined {
+    return getSettings()?.models?.openai?.api_key;
+}
+
+export function getOpenCodeKey(): string | undefined {
+    return getSettings()?.models?.opencode?.api_key;
+}
+
+export function getApiKeyForProvider(provider: string): string | undefined {
+    if (provider === 'openai') return getOpenAIKey();
+    if (provider === 'opencode') return getOpenCodeKey();
+    if (provider === 'anthropic') return getAnthropicKey();
+}
+
+/**
+ * Return the currently configured agents, or a default agent if none exist.
+ */
+export function getAgents(settings?: Settings): AgentConfig[] {
+    if (!settings) settings = getSettings();
+    if (settings?.agents && settings.agents.length > 0) {
         return settings.agents;
     }
-    // Fall back to default agent from models section
-    return { default: getDefaultAgentFromModels(settings) };
+    // Fallback to legacy single-model config
+    return [getDefaultAgentFromModels(settings)];
 }
 
 /**
- * Get all configured teams.
+ * Return the currently configured teams, or an empty array.
  */
-export function getTeams(settings: Settings): Record<string, TeamConfig> {
-    return settings.teams || {};
+export function getTeams(settings?: Settings): TeamConfig[] {
+    if (!settings) settings = getSettings();
+    return settings?.teams || [];
 }
 
 /**
- * Resolve the model ID for Claude (Anthropic).
+ * Mutate the in-memory settings object and write it back to disk.
  */
-export function resolveClaudeModel(model: string): string {
-    return CLAUDE_MODEL_IDS[model] || model || '';
-}
-
-/**
- * Resolve the model ID for Codex (OpenAI).
- */
-export function resolveCodexModel(model: string): string {
-    return CODEX_MODEL_IDS[model] || model || '';
-}
-
-/**
- * Resolve the model ID for OpenCode (passed via --model flag).
- * Falls back to the raw model string from settings if no mapping is found.
- */
-export function resolveOpenCodeModel(model: string): string {
-    return OPENCODE_MODEL_IDS[model] || model || '';
+export function mutateSettings(fn: (s: Settings) => void): void {
+    const settings = getSettings();
+    fn(settings);
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2) + '\n');
 }

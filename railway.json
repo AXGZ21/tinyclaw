@@ -1,17 +1,20 @@
 {
-  "$schema": "https://railway.app/railway.schema.json",
+  "$schema": "https://railway.com/railway.schema.json",
+  "name": "tinyclaw",
+  "description": "Multi-agent, multi-team, multi-channel AI assistant framework",
+  "repository": "https://github.com/AXGZ21/tinyclaw",
   "build": {
-    "builder": "NIXPACKS",
-    "buildpacks": ["node"]
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile"
   },
   "deploy": {
     "numReplicas": 1,
+    "startCommand": "./scripts/railway-start.sh",
+    "healthcheckPath": "/",
+    "healthcheckTimeout": 60,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   },
-  "name": "tinyclaw",
-  "description": "Multi-agent, multi-team, multi-channel AI assistant framework",
-  "repository": "https://github.com/TinyAGI/tinyclaw",
   "artifacts": [
     {
       "path": "./.tinyclaw",

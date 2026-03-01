@@ -1,0 +1,14 @@
+# TinyOffice Railway configuration
+# The Next.js frontend for TinyClaw.
+# Set NEXT_PUBLIC_API_URL to the public URL of your tinyclaw backend service.
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "tinyoffice/Dockerfile"
+
+[deploy]
+startCommand = "node server.js"
+healthcheckPath = "/"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

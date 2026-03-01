@@ -1,0 +1,17 @@
+# TinyClaw Railway configuration
+# Two services: tinyclaw (backend) and tinyoffice (frontend).
+# See Railway docs: https://docs.railway.com/reference/config-as-code
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "/app/docker-entrypoint.sh"
+healthcheckPath = "/api/queue/status"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+
+[[mounts]]
+mountPath = "/data"

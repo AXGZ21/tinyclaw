@@ -14,8 +14,12 @@
     <a href="https://github.com/TinyAGI/tinyclaw/releases/latest">
       <img src="https://img.shields.io/github/v/release/TinyAGI/tinyclaw?label=Latest&color=green" alt="Latest Release" />
     </a>
+    <a href="https://railway.com/template/tinyclaw">
+      <img src="https://railway.com/button.svg" alt="Deploy on Railway" height="20" />
+    </a>
   </p>
 </div>
+
 
 <div align="center">
   <video src="https://github.com/user-attachments/assets/c5ef5d3c-d9cf-4a00-b619-c31e4380df2e" width="600" controls></video>

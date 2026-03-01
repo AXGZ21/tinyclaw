@@ -1,0 +1,132 @@
+{
+    "name": "TinyClaw",
+    "description": "Multi-agent, multi-team, multi-channel 24/7 AI assistant. Run Discord & Telegram bots powered by Claude or OpenAI, with a Next.js web dashboard (TinyOffice).",
+    "icon": "https://raw.githubusercontent.com/TinyAGI/tinyclaw/main/docs/images/tinyclaw.png",
+    "readme": "https://raw.githubusercontent.com/TinyAGI/tinyclaw/main/docs/RAILWAY.md",
+    "tags": [
+        "ai",
+        "agents",
+        "discord",
+        "telegram",
+        "typescript",
+        "nextjs"
+    ],
+    "services": [
+        {
+            "name": "tinyclaw",
+            "description": "TinyClaw backend — queue processor, API server (port 3777), Discord & Telegram channel clients.",
+            "source": {
+                "repo": "https://github.com/TinyAGI/tinyclaw",
+                "branch": "main"
+            },
+            "build": {
+                "builder": "DOCKERFILE",
+                "dockerfilePath": "Dockerfile"
+            },
+            "deploy": {
+                "startCommand": "/app/docker-entrypoint.sh",
+                "healthcheckPath": "/api/queue/status",
+                "healthcheckTimeout": 30
+            },
+            "volumes": [
+                {
+                    "mountPath": "/data"
+                }
+            ],
+            "variables": [
+                {
+                    "name": "AI_PROVIDER",
+                    "description": "AI provider to use: 'anthropic' (Claude Code CLI) or 'openai' (Codex CLI).",
+                    "defaultValue": "anthropic",
+                    "required": true
+                },
+                {
+                    "name": "AI_MODEL",
+                    "description": "Model name. Anthropic: 'sonnet' or 'opus'. OpenAI: 'gpt-5.3-codex' or 'gpt-5.2'.",
+                    "defaultValue": "sonnet",
+                    "required": false
+                },
+                {
+                    "name": "ANTHROPIC_API_KEY",
+                    "description": "Anthropic API key — required if AI_PROVIDER=anthropic.",
+                    "required": false
+                },
+                {
+                    "name": "OPENAI_API_KEY",
+                    "description": "OpenAI API key — required if AI_PROVIDER=openai.",
+                    "required": false
+                },
+                {
+                    "name": "TINYCLAW_CHANNELS",
+                    "description": "Comma-separated list of channels to enable. Supported on Railway: 'discord', 'telegram'. Example: 'discord,telegram'.",
+                    "defaultValue": "",
+                    "required": false
+                },
+                {
+                    "name": "DISCORD_BOT_TOKEN",
+                    "description": "Discord bot token — required if 'discord' is in TINYCLAW_CHANNELS.",
+                    "required": false
+                },
+                {
+                    "name": "TELEGRAM_BOT_TOKEN",
+                    "description": "Telegram bot token — required if 'telegram' is in TINYCLAW_CHANNELS.",
+                    "required": false
+                },
+                {
+                    "name": "TINYCLAW_API_PORT",
+                    "description": "Port for the TinyClaw REST API server.",
+                    "defaultValue": "3777",
+                    "required": false
+                },
+                {
+                    "name": "TINYCLAW_HOME",
+                    "description": "Directory for TinyClaw data (SQLite DB, logs, queue). Should match the Volume mount path.",
+                    "defaultValue": "/data",
+                    "required": false
+                },
+                {
+                    "name": "AGENT_NAME",
+                    "description": "Display name of the default AI assistant agent.",
+                    "defaultValue": "Assistant",
+                    "required": false
+                },
+                {
+                    "name": "HEARTBEAT_INTERVAL",
+                    "description": "How often agents proactively check in, in seconds.",
+                    "defaultValue": "3600",
+                    "required": false
+                }
+            ]
+        },
+        {
+            "name": "tinyoffice",
+            "description": "TinyOffice — Next.js web dashboard for TinyClaw. Chat console, agent/team management, Kanban tasks, logs, and settings.",
+            "source": {
+                "repo": "https://github.com/TinyAGI/tinyclaw",
+                "branch": "main"
+            },
+            "build": {
+                "builder": "DOCKERFILE",
+                "dockerfilePath": "tinyoffice/Dockerfile"
+            },
+            "deploy": {
+                "startCommand": "node server.js",
+                "healthcheckPath": "/",
+                "healthcheckTimeout": 30
+            },
+            "variables": [
+                {
+                    "name": "NEXT_PUBLIC_API_URL",
+                    "description": "Public URL of the tinyclaw backend service (e.g. https://tinyclaw-production.up.railway.app).",
+                    "required": true
+                },
+                {
+                    "name": "PORT",
+                    "description": "Port for Next.js server. Railway injects this automatically.",
+                    "defaultValue": "3000",
+                    "required": false
+                }
+            ]
+        }
+    ]
+}
